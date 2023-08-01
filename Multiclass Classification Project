@@ -1,0 +1,221 @@
+# Working with a larger dataset with multiclass classification.
+# We are going to classify different images of clothes.
+
+import tensorflow as tf
+from tensorflow.keras.datasets import fashion_mnist
+
+(train_data, train_labels), (test_data, test_labels) = fashion_mnist.load_data()
+
+# Visulalize tha Data just get familiar with it.
+print(f"Training Sample:\n{train_data[0]}\n")
+print(f"Training Label:\n{train_labels[0]}\n")
+
+
+# Check that shape of the data and labels
+train_data[0].shape, train_labels[0].shape
+
+
+#Plotting a single sample
+import matplotlib.pyplot as plt
+plt.imshow(train_data[0]);
+
+# Total no. of labels
+train_labels[0]
+
+# Plot an example image and its label
+index = 20 (random out of 60000 input images)
+plt.imshow(train_data[index], cmap=plt.cm.binary)
+plt.title(class_names[train_labels[index]])
+
+# Building a multiclass classification model
+# Set random seed
+tf.random.set_seed(42)
+
+# Build a Model (this was my 6th model choose any name you prefer)
+model_6 = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(10, activation="softmax"),
+])
+
+# Compile the Model
+model_6.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=["accuracy"])
+
+# Fit the Model
+non_norm_history = model_6.fit(train_data, train_labels, epochs=25, validation_data=(test_data, test_labels)) # non-norm means the data hasn't been normalized just yet.
+
+# Evaluate the model any way you choose ( I choose to rather visualize which we'll do later)
+
+# Now we normalize our data set
+# We can get our training and testing data between 0 & 1 dividing by the maximum
+train_data_norm = train_data / 255.0 (max value is 255.0)
+test_data_norm = test_data / 255.0 (same here)
+
+# Check the min and max now (should be 0 & 1)
+train_data_norm.min(), test_data_norm.max()
+
+# Now our data is normalized, let's build a model to find patterns in it
+
+# Set random seed
+tf.random.set_seed(42)
+
+# Build a Model
+model_7 = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(10, activation="softmax"),
+])
+
+# Compile The Model
+model_7.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                optimizer=tf.keras.optimizers.Adam(),
+                metrics=['accuracy'])
+
+# Fit the Model
+norm_history = model_7.fit(train_data_norm, train_labels, epochs=25, validation_data=(test_data_norm, test_labels))
+
+
+# Now we visualize both our models and compare it together
+
+import pandas as pd
+# Plot the non normalized data loss curves
+pd.DataFrame(non_norm_history.history).plot(title="Non-normalized Data")
+
+#Plot the normalized data loss curves
+pd.DataFrame(norm_history.history).plot(title="Normalized Data")
+
+
+# One can leave it here, but we can evaluate by visulizing our model's prediction as mentioned above
+
+# Create a confusion matrix (It's one of the ways to evaluate our model through visualization)
+# Below is just python code (It's easy to understand if you read the code twice or thrice)
+
+import itertools
+from sklearn.metrics import confusion_matrix
+
+
+def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_size=15):
+  
+  # Create a confusion matrix
+  cm = confusion_matrix(y_true, y_pred)
+  cm_norm = cm.astype("float") / cm.sum(axis=1) [:, np.newaxis] 
+  n_classes = cm.shape[0]
+
+  # Let's Prettify it
+  fig, ax = plt.subplots(figsize=figsize)
+  # Create a matrix plot 
+  cax = ax.matshow(cm, cmap=plt.cm.Blues)
+  fig.colorbar(cax)
+
+  # Set labels to classes
+  if classes:
+    labels = classes
+  else:
+    labels = np.arange(cm.shape[0])
+
+  # Label the axes
+  ax.set(title="Confusion Matrix",
+         xlabel="Predicted Label",
+         ylabel="True Label",
+         xticks=np.arange(n_classes),
+         yticks=np.arange(n_classes),
+         xticklabels=labels,
+         yticklabels=labels)
+  
+  # Set x-axis labels to bottom
+  ax.xaxis.set_label_position("bottom")
+  ax.xaxis.tick_bottom()
+
+  # Adjust the label size 
+  ax.yaxis.label.set_size(text_size)
+  ax.xaxis.label.set_size(text_size)
+  ax.title.set_size(text_size)
+
+  # Set the threshold for different colors
+  threshold  = (cm.max() + cm.min()) / 2.
+
+  # Plot the text on each cell
+  for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    plt.text(j, i, f"{cm[i, j]} ({cm_norm[i, j]*100:.1f}%)",
+             horizontalalignment="center",
+             color="white" if cm[i, j] > threshold else "black",
+             size=text_size)
+
+
+# Now make some predictions
+
+y_probs = model_7.predict(test_data_norm) # probs is short for "prediction probabilities" #Remember to predict the model on same data as it was trained on.
+
+# View the first 5 predictions 
+y_probs[:5]
+
+
+# Make the confusion matrix 
+
+from sklearn.metrics import confusion_matrix
+confusion_matrix(y_true=test_labels,
+                 y_pred=y_preds)
+
+
+# Make a confusion matrix more prettier
+
+make_confusion_matrix(y_true=test_labels,
+                      y_pred=y_preds,
+                      classes=class_names,
+                      figsize=(13, 13),
+                      text_size=7)
+make_confusion_matrix(y_true=test_labels,
+                      y_pred=y_preds,
+                      classes=class_names,
+                      figsize=(13, 13),
+                      text_size=7)
+
+
+# One extra-curriculum
+1. Plot a random image
+2. Make a prediction on said image
+3. Label the plot with the truth label and predicted label
+
+import random 
+
+def plot_random_image(model, images, true_labels, classes):
+  """
+  Pick a random image, plot it and label it with  a prediction and truth label
+  """
+
+  # Set up random integer
+  i =  random.randint(0, len(images))
+
+  # Create pridictions and targets
+  target_image = images[i]
+  pred_probs = model.predict(target_image.reshape(1, 28, 28)) # 28 x 28 image but one at a time
+  pred_label = classes[pred_probs.argmax()]
+  true_label = classes[true_labels[i]]
+
+  # Plot the image
+  plt.imshow(target_image, cmap=plt.cm.binary)
+
+  # Change the color of the titles depending it the prediction is right or wrong
+  if pred_label == true_label:
+    color = "green"
+  else:
+    color = "red"
+
+  # Add xlabel information (prediction / true label)
+  plt.xlabel("Pred: {} {:2.0f}% (True: {})".format(pred_label,
+                                                   100*tf.reduce_max(pred_probs),
+                                                   true_label),
+             color=color)
+
+# Check Out a random image as well as its prediction
+plot_random_image(model=model_7,
+                  images=test_data_norm,
+                  true_labels=test_labels,
+                  classes=class_names)
+
+
+** Note ** : If any doubt leave a comment.
